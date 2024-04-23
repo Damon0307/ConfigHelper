@@ -1,0 +1,11 @@
+prefix=/home/wjc/WorkSpace/tmp_file/elog4cpp/build/_install
+exec_prefix=/home/wjc/WorkSpace/tmp_file/elog4cpp/build/_install
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: fmt
+Description: A modern formatting library
+Version: 10.1.2
+Libs: -L${libdir} -lfmt
+Cflags: -I${includedir}
+
