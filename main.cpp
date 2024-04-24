@@ -14,7 +14,8 @@ int main()
     Log::warn("hello elog4cpp");
     Log::error("hello elog4cpp");
     //Log::fatal("hello elog4cpp");
+    
 
-    std::cout << "/* message */" << std::endl;
+    std::cout << "/* HI */" << std::endl;
     
 }
