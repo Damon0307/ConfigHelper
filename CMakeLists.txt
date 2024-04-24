@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
  
 # 设置编译选项
-option(ENABLE_CROSS_COMPILE "Enable cross-compile for specific platform" OFF)
+option(ENABLE_CROSS_COMPILE "Enable cross-compile for specific platform" ON)
 
 # 添加编译器选项
 if(ENABLE_CROSS_COMPILE)
@@ -30,12 +30,26 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     elog4cpp/include
 )
-link_directories(elog4cpp/lib)  
 
+
+
+# 添加源文件
+set(SOURCES
+    main.cpp
+)
+ 
 # 添加可执行文件
 add_executable(cfg_helper main.cpp)
 
 
+
+if(ENABLE_CROSS_COMPILE)
+target_link_directories(cfg_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/elog4cpp/lib/arm)
+ message(STATUS "link_directories ${CMAKE_CURRENT_SOURCE_DIR}/elog4cpp/lib/arm")    
+else()
+  target_link_directories(cfg_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/elog4cpp/lib/x86)
+  message(STATUS "link_directories ${CMAKE_CURRENT_SOURCE_DIR}/elog4cpp/lib/x86")
+endif()
 #链接 elog库
 target_link_libraries(cfg_helper elog)
 target_link_libraries(cfg_helper ejson)
