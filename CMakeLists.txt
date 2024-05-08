@@ -31,9 +31,7 @@ include_directories(
     elog4cpp/include
     libhv/include
 )
-
-
-
+ 
 # 添加源文件
 set(SOURCES
     main.cpp
@@ -41,18 +39,13 @@ set(SOURCES
  
 # 添加可执行文件
 add_executable(cfg_helper main.cpp)
-
-
-
+ 
 if(ENABLE_CROSS_COMPILE)
 target_link_directories(cfg_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/elog4cpp/lib/arm)
 target_link_directories(cfg_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libhv/lib/arm)
- 
-
 else()
   target_link_directories(cfg_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/elog4cpp/lib/x86)
   target_link_directories(cfg_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libhv/lib/x86)
-
 endif()
 #链接 elog库
 target_link_libraries(cfg_helper elog)

@@ -1,32 +1,57 @@
 
+
 #include <string>
 #include <iostream>
+
+
+// #include "libhv/include/hv/HttpServer.h"
+// #include "libhv/include/hv/hthread.h"
+// #include "libhv/include/hv/hasync.h"
+
+#define ENABLE_ELG_LOG
 #include "elog/logger.h"
-
-#include "libhv/include/hv/HttpServer.h"
-#include "libhv/include/hv/hthread.h"
-#include "libhv/include/hv/hasync.h"
-
 
 using namespace std;
 using namespace elog;
-using namespace hv;
+// using namespace hv;
 
 #define TEST_HTTPS 0
-
-
+ 
 int main(int argc, char** argv)
 {
-    Log::trace("hello elog4cpp");
+    //简单打印
+
+    //Log::fatal("hello elog4cpp");
+    //打印出文件信息行号
+
+GlobalConfig::Get()
+        .setFilepath("log/")
+        .setLevel(Levels::kTrace)
+        .setFormatter(formatter::colorfulFormatter);
+    //!链式写法 骚的呢
+
+
+    // GlobalConfig::Get().setConsole(true);
+    // GlobalConfig::Get().setFile(true);
+    // GlobalConfig::Get().setFileLevel(Levels::kTrace);
+    // GlobalConfig::Get().setFilePath("./log");
+    // GlobalConfig::Get().setFileName("log");
+    // GlobalConfig::Get().setFileMaxSize(1024 * 1024 * 10);
+    // GlobalConfig::Get().setFileMaxBackups(10);
+   // Log::debug(loc::current(), "hello elog4cpp");   
+   
+
+    Log::trace("hello elog4cpp");  
     Log::debug("hello elog4cpp");
     Log::info("hello elog4cpp");
     Log::warn("hello elog4cpp");
     Log::error("hello elog4cpp");
-    //Log::fatal("hello elog4cpp");
     
 
-    std::cout << "/* HI */" << std::endl;
 
+    return 0;
+#if 0
+    std::cout << "/* HI */" << std::endl;
 
     HV_MEMCHECK;
 
@@ -133,5 +158,5 @@ int main(int argc, char** argv)
     while (getchar() != '\n');
     hv::async::cleanup();
     return 0;
-    
+    #endif
 }
