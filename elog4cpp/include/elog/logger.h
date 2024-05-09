@@ -569,7 +569,7 @@ LBLOG_NAMESPACE_END
 #define ELG_CHECK_GT(v1, v2) ELG_ASSERT_IF(v1 > v2)
 
 #endif
-
+ 
 #ifdef ENABLE_ELG_LOG
 // log with position micro
 #define ELG_TRACE(fmt, ...)                                                    \

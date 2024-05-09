@@ -6,7 +6,6 @@ project(cfg_helper)
 #设置编译器标准
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
  
 # 设置编译选项
 option(ENABLE_CROSS_COMPILE "Enable cross-compile for specific platform" OFF)
@@ -23,21 +22,34 @@ if(ENABLE_CROSS_COMPILE)
    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 endif()
+
  
 
 # 添加头文件
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     elog4cpp/include
+    libhv/include
 )
-link_directories(elog4cpp/lib)  
-
+ 
+# 添加源文件
+set(SOURCES
+    main.cpp
+)
+ 
 # 添加可执行文件
 add_executable(cfg_helper main.cpp)
-
-
+ 
+if(ENABLE_CROSS_COMPILE)
+target_link_directories(cfg_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/elog4cpp/lib/arm)
+target_link_directories(cfg_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libhv/lib/arm)
+else()
+  target_link_directories(cfg_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/elog4cpp/lib/x86)
+  target_link_directories(cfg_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libhv/lib/x86)
+endif()
 #链接 elog库
 target_link_libraries(cfg_helper elog)
 target_link_libraries(cfg_helper ejson)
 target_link_libraries(cfg_helper pthread)
 target_link_libraries(cfg_helper fmt)
+target_link_libraries(cfg_helper hv)
