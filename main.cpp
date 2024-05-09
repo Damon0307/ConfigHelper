@@ -3,7 +3,6 @@
 #include <string>
 #include <iostream>
 
-
 // #include "libhv/include/hv/HttpServer.h"
 // #include "libhv/include/hv/hthread.h"
 // #include "libhv/include/hv/hasync.h"
@@ -16,38 +15,38 @@ using namespace elog;
 // using namespace hv;
 
 #define TEST_HTTPS 0
- 
-int main(int argc, char** argv)
+
+int main(int argc, char **argv)
 {
-    //简单打印
+    // 简单打印
 
-    //Log::fatal("hello elog4cpp");
-    //打印出文件信息行号
+    // Log::fatal("hello elog4cpp");
+    // 打印出文件信息行号
 
-GlobalConfig::Get()
+    GlobalConfig::Get()
         .setFilepath("log/")
         .setLevel(Levels::kTrace)
         .setFormatter(formatter::colorfulFormatter);
-    //!链式写法 骚的呢
-
-
-    // GlobalConfig::Get().setConsole(true);
-    // GlobalConfig::Get().setFile(true);
-    // GlobalConfig::Get().setFileLevel(Levels::kTrace);
-    // GlobalConfig::Get().setFilePath("./log");
-    // GlobalConfig::Get().setFileName("log");
-    // GlobalConfig::Get().setFileMaxSize(1024 * 1024 * 10);
-    // GlobalConfig::Get().setFileMaxBackups(10);
-   // Log::debug(loc::current(), "hello elog4cpp");   
-   
-
-    Log::trace("hello elog4cpp");  
-    Log::debug("hello elog4cpp");
-    Log::info("hello elog4cpp");
-    Log::warn("hello elog4cpp");
-    Log::error("hello elog4cpp");
-    
-
+    //! 链式写法 骚的呢
+    GlobalConfig::Get()
+        .setRollSize(4)
+        .setFlushInterval(3)
+        .setFilepath("log/")
+        .enableConsole(true)
+        .setFlag(kStdFlags + kThreadId)
+        .setLevel(kTrace)
+        .setName("")
+        .setBefore([](output_buf_t &buf)
+                   { buf.append(""); })
+        .setAfter([](output_buf_t &buf)
+                  { buf.append(""); })
+        .setFormatter(formatter::customFromString("%c[%L][%T][file:%F][func:%f]:%v%C"));
+    //.setFormatter(formatter::customFromString("%c[%L][%T][tid:%t][name:%n][file:%F][func:%f]:%v%C"));
+    ELG_TRACE("hello elog4cpp");
+    ELG_DEBUG("hello elog4cpp");
+    ELG_INFO("hello elog4cpp");
+    ELG_WARN("hello elog4cpp");
+    ELG_ERROR("hello elog4cpp");
 
     return 0;
 #if 0
@@ -158,5 +157,5 @@ GlobalConfig::Get()
     while (getchar() != '\n');
     hv::async::cleanup();
     return 0;
-    #endif
+#endif
 }
