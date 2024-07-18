@@ -1,161 +1,244 @@
-
-
 #include <string>
 #include <iostream>
+/*
+ * websocket client
+ *
+ * @build   make examples
 
-// #include "libhv/include/hv/HttpServer.h"
-// #include "libhv/include/hv/hthread.h"
-// #include "libhv/include/hv/hasync.h"
+ * @server  bin/websocket_server_test 8888
 
-#define ENABLE_ELG_LOG
-#include "elog/logger.h"
+ * @client  bin/websocket_client_test ws://127.0.0.1:8888/test
 
-using namespace std;
-using namespace elog;
-// using namespace hv;
+ * @clients bin/websocket_client_test ws://127.0.0.1:8888/test 100
 
-#define TEST_HTTPS 0
+ * @python  scripts/websocket_server.py
 
-int main(int argc, char **argv)
-{
-    // 简单打印
+ * @js      html/websocket_client.html
 
-    // Log::fatal("hello elog4cpp");
-    // 打印出文件信息行号
+ *
+ */
 
-    GlobalConfig::Get()
-        .setFilepath("log/")
-        .setLevel(Levels::kTrace)
-        .setFormatter(formatter::colorfulFormatter);
-    //! 链式写法 骚的呢
-    GlobalConfig::Get()
-        .setRollSize(4)
-        .setFlushInterval(3)
-        .setFilepath("log/")
-        .enableConsole(true)
-        .setFlag(kStdFlags + kThreadId)
-        .setLevel(kTrace)
-        .setName("")
-        .setBefore([](output_buf_t &buf)
-                   { buf.append(""); })
-        .setAfter([](output_buf_t &buf)
-                  { buf.append(""); })
-        .setFormatter(formatter::customFromString("%c[%L][%T][file:%F][func:%f]:%v%C"));
-    //.setFormatter(formatter::customFromString("%c[%L][%T][tid:%t][name:%n][file:%F][func:%f]:%v%C"));
-    ELG_TRACE("hello elog4cpp");
-    ELG_DEBUG("hello elog4cpp");
-    ELG_INFO("hello elog4cpp");
-    ELG_WARN("hello elog4cpp");
-    ELG_ERROR("hello elog4cpp");
 
-    return 0;
-#if 0
-    std::cout << "/* HI */" << std::endl;
 
-    HV_MEMCHECK;
+#include "libhv/include/hv/WebSocketClient.h"
 
-    int port = 0;
-    if (argc > 1) {
-        port = atoi(argv[1]);
+
+
+using namespace hv;
+
+
+
+class MyWebSocketClient : public WebSocketClient {
+
+public:
+
+    MyWebSocketClient(EventLoopPtr loop = NULL) : WebSocketClient(loop) {}
+
+    ~MyWebSocketClient() {}
+
+
+
+    int connect(const char* url) {
+
+        // set callbacks
+
+        onopen = [this]() {
+
+            const HttpResponsePtr& resp = getHttpResponse();
+
+            printf("onopen\n%s\n", resp->body.c_str());
+
+            // printf("response:\n%s\n", resp->Dump(true, true).c_str());
+
+        };
+
+        onmessage = [this](const std::string& msg) {
+
+            printf("onmessage(type=%s len=%d): %.*s\n", opcode() == WS_OPCODE_TEXT ? "text" : "binary",
+
+                (int)msg.size(), (int)msg.size(), msg.data());
+
+
+ // Create a JSON object to send as a reply
+
+                std::string raw_string = "{\"message\": \"hello_ack\"}";
+
+            // Send the JSON string
+
+            send(raw_string);
+
+
+
+        };
+
+        onclose = []() {
+
+            printf("onclose\n");
+
+        };
+
+
+
+        // ping
+
+        setPingInterval(10000);
+
+
+
+        // reconnect: 1,2,4,8,10,10,10...
+
+        reconn_setting_t reconn;
+
+        reconn_setting_init(&reconn);
+
+        reconn.min_delay = 1000;
+
+        reconn.max_delay = 10000;
+
+        reconn.delay_policy = 2;
+
+        setReconnect(&reconn);
+
+
+
+        /*
+
+        auto req = std::make_shared<HttpRequest>();
+
+        req->method = HTTP_POST;
+
+        req->headers["Origin"] = "http://example.com";
+
+        req->json["app_id"] = "123456";
+
+        req->json["app_secret"] = "abcdefg";
+
+        printf("request:\n%s\n", req->Dump(true, true).c_str());
+
+        setHttpRequest(req);
+
+        */
+
+
+
+        http_headers headers;
+
+        headers["Origin"] = "http://example.com/";
+
+        return open(url, headers);
+
+    };
+
+};
+
+typedef std::shared_ptr<MyWebSocketClient> MyWebSocketClientPtr;
+
+
+
+int TestMultiClientsRunInOneEventLoop(const char* url, int nclients) {
+
+    auto loop_thread = std::make_shared<EventLoopThread>();
+
+    loop_thread->start();
+
+
+
+    std::map<int, MyWebSocketClientPtr> clients;
+
+    for (int i = 0; i < nclients; ++i) {
+
+        MyWebSocketClient* client = new MyWebSocketClient(loop_thread->loop());
+
+        client->connect(url);
+
+        clients[i] = MyWebSocketClientPtr(client);
+
     }
-    if (port == 0) port = 8080;
 
-    HttpService router;
 
-    /* Static file service */
-    // curl -v http://ip:port/
-    router.Static("/", "./html");
-
-    /* Forward proxy service */
-    router.EnableForwardProxy();
-    // curl -v http://httpbin.org/get --proxy http://127.0.0.1:8080
-    router.AddTrustProxy("*httpbin.org");
-
-    /* Reverse proxy service */
-    // curl -v http://ip:port/httpbin/get
-    router.Proxy("/httpbin/", "http://httpbin.org/");
-
-    /* API handlers */
-    // curl -v http://ip:port/ping
-    router.GET("/ping", [](HttpRequest* req, HttpResponse* resp) {
-        return resp->String("pong");
-    });
-
-    // curl -v http://ip:port/data
-    router.GET("/data", [](HttpRequest* req, HttpResponse* resp) {
-        static char data[] = "0123456789";
-        return resp->Data(data, 10 /*, false */);
-    });
-
-    // curl -v http://ip:port/paths
-    router.GET("/paths", [&router](HttpRequest* req, HttpResponse* resp) {
-        return resp->Json(router.Paths());
-    });
-
-    // curl -v http://ip:port/get?env=1
-    router.GET("/get", [](const HttpContextPtr& ctx) {
-        hv::Json resp;
-        resp["origin"] = ctx->ip();
-        resp["url"] = ctx->url();
-        resp["args"] = ctx->params();
-        resp["headers"] = ctx->headers();
-        return ctx->send(resp.dump(2));
-    });
-
-    // curl -v http://ip:port/echo -d "hello,world!"
-    router.POST("/echo", [](const HttpContextPtr& ctx) {
-        return ctx->send(ctx->body(), ctx->type());
-    });
-
-    // curl -v http://ip:port/user/123
-    router.GET("/user/{id}", [](const HttpContextPtr& ctx) {
-        hv::Json resp;
-        resp["id"] = ctx->param("id");
-        return ctx->send(resp.dump(2));
-    });
-
-    // curl -v http://ip:port/async
-    router.GET("/async", [](const HttpRequestPtr& req, const HttpResponseWriterPtr& writer) {
-        writer->Begin();
-        writer->WriteHeader("X-Response-tid", hv_gettid());
-        writer->WriteHeader("Content-Type", "text/plain");
-        writer->WriteBody("This is an async response.\n");
-        writer->End();
-    });
-
-    // middleware
-    router.AllowCORS();
-    router.Use([](HttpRequest* req, HttpResponse* resp) {
-        resp->SetHeader("X-Request-tid", hv::to_string(hv_gettid()));
-        return HTTP_STATUS_NEXT;
-    });
-
-    HttpServer server;
-    server.service = &router;
-    server.port = port;
-#if TEST_HTTPS
-    server.https_port = 8443;
-    hssl_ctx_opt_t param;
-    memset(&param, 0, sizeof(param));
-    param.crt_file = "cert/server.crt";
-    param.key_file = "cert/server.key";
-    param.endpoint = HSSL_SERVER;
-    if (server.newSslCtx(&param) != 0) {
-        fprintf(stderr, "new SSL_CTX failed!\n");
-        return -20;
-    }
-#endif
-
-    // uncomment to test multi-processes
-    // server.setProcessNum(4);
-    // uncomment to test multi-threads
-    // server.setThreadNum(4);
-
-    server.start();
 
     // press Enter to stop
+
     while (getchar() != '\n');
-    hv::async::cleanup();
+
+    loop_thread->stop();
+
+    loop_thread->join();
+
+
+
     return 0;
-#endif
+
+}
+
+
+
+int main(int argc, char** argv) {
+
+    if (argc < 2) {
+
+        printf("Usage: %s url\n", argv[0]);
+
+        return -10;
+
+    }
+
+    const char* url = argv[1];
+
+
+
+    int nclients = 0;
+
+    if (argc > 2) {
+
+        nclients = atoi(argv[2]);
+
+    }
+
+    if (nclients > 0) {
+
+        return TestMultiClientsRunInOneEventLoop(url, nclients);
+
+    }
+
+
+
+    MyWebSocketClient ws;
+
+    ws.connect(url);
+
+
+
+    std::string str;
+
+    while (std::getline(std::cin, str)) {
+
+        if (str == "close") {
+
+            ws.close();
+
+        } else if (str == "open") {
+
+            ws.connect(url);
+
+        } else if (str == "stop") {
+
+            ws.stop();
+
+            break;
+
+        } else {
+
+            if (!ws.isConnected()) break;
+
+            ws.send(str);
+
+        }
+
+    }
+
+
+
+    return 0;
+
 }
